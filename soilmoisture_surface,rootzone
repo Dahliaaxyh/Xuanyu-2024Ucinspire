@@ -1,0 +1,83 @@
+// Define datasets and points of interest
+var SMAP_ROOTZONE = ee.ImageCollection('NASA/SMAP/SPL4SMGP/007')
+  .select('sm_rootzone') // Select the root zone soil moisture ('sm_rootzone') band
+  .filterDate('2015-04-01', '2023-06-01'); // Filter data by date range
+
+var SMAP_SURFACE = ee.ImageCollection('NASA/SMAP/SPL3SMP_E/005')
+  .select('soil_moisture_am') // Select the surface soil moisture ('soil_moisture_am') band
+  .filterDate('2015-04-01', '2023-06-01'); // Filter data by date range
+
+var wetpoint = ee.Geometry.Point(58.398167, 30.898183); // Coordinates of the wet point
+var drypoint = ee.Geometry.Point(58.597900, 30.604700); // Coordinates of the dry point
+
+// Function to extract root zone soil moisture values for given points
+var extractRootzoneValues = function(image) {
+  var date = image.date().format('YYYY-MM-dd'); // Extract image date
+  var valueWetpoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to extract root zone soil moisture at the wet point
+    geometry: wetpoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('sm_rootzone');
+  
+  var valueDrypoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to extract root zone soil moisture at the dry point
+    geometry: drypoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('sm_rootzone');
+
+  return ee.Feature(null, {
+    'date': date,
+    'wetpoint_rootzone_sm': valueWetpoint,
+    'drypoint_rootzone_sm': valueDrypoint
+  });
+};
+
+// Function to extract surface soil moisture values for given points
+var extractSurfaceValues = function(image) {
+  var date = image.date().format('YYYY-MM-dd'); // Extract image date
+  var valueWetpoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to extract surface soil moisture at the wet point
+    geometry: wetpoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('soil_moisture_am');
+  
+  var valueDrypoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to extract surface soil moisture at the dry point
+    geometry: drypoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('soil_moisture_am');
+
+  return ee.Feature(null, {
+    'date': date,
+    'wetpoint_surface_sm': valueWetpoint,
+    'drypoint_surface_sm': valueDrypoint
+  });
+};
+
+// Apply the extraction function to the root zone soil moisture image collection
+var rootzoneTimeSeries = SMAP_ROOTZONE.map(extractRootzoneValues);
+var rootzoneFeatureCollection = ee.FeatureCollection(rootzoneTimeSeries);
+
+// Apply the extraction function to the surface soil moisture image collection
+var surfaceTimeSeries = SMAP_SURFACE.map(extractSurfaceValues);
+var surfaceFeatureCollection = ee.FeatureCollection(surfaceTimeSeries);
+
+// Print the size of feature collections for debugging
+print('Rootzone Feature Collection Size:', rootzoneFeatureCollection.size());
+print('Surface Feature Collection Size:', surfaceFeatureCollection.size());
+
+// Export root zone soil moisture data to Google Drive
+Export.table.toDrive({
+  collection: rootzoneFeatureCollection,
+  description: 'SoilMoisture_Rootzone',
+  folder: 'Summer',
+  fileFormat: 'CSV'
+});
+
+// Export surface soil moisture data to Google Drive
+Export.table.toDrive({
+  collection: surfaceFeatureCollection,
+  description: 'SoilMoisture_Surface',
+  folder: 'Summer',
+  fileFormat: 'CSV'
+});
