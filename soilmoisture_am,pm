@@ -1,0 +1,44 @@
+// Define the dataset and points
+var SMAP_PM = ee.ImageCollection('NASA/SMAP/SPL3SMP_E/005')
+  .select('soil_moisture_pm') // Select the 'soil_moisture_pm' band for 6 PM soil moisture
+  .filterDate('2002-07-04', '2023-06-01'); // Filter by date range
+
+var wetpoint = ee.Geometry.Point(58.398167, 30.898183);
+var drypoint = ee.Geometry.Point(58.597900, 30.604700);
+
+// Function to extract soil moisture values for the given points
+var extractPointValues = function(image) {
+  var date = image.date().format('YYYY-MM-dd');
+  var valueWetpoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to get average value
+    geometry: wetpoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('soil_moisture_pm');
+  
+  var valueDrypoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to get average value
+    geometry: drypoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('soil_moisture_pm');
+
+  return ee.Feature(null, {
+    'date': date,
+    'wetpoint_sm_pm': valueWetpoint,
+    'drypoint_sm_pm': valueDrypoint
+  });
+};
+
+// Map the extraction function over the collection
+var timeSeries = SMAP_PM.map(extractPointValues);
+var featureCollection = ee.FeatureCollection(timeSeries);
+
+// Print feature collection size for debugging
+print('Feature Collection Size:', featureCollection.size());
+
+// Export data to Google Drive
+Export.table.toDrive({
+  collection: featureCollection,
+  description: 'SoilMoisture_PM',
+  folder: 'Summer',
+  fileFormat: 'CSV'
+});
