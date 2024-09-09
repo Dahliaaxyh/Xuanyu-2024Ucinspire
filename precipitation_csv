@@ -1,0 +1,44 @@
+// Define the dataset and points
+var GPM = ee.ImageCollection('NASA/GPM_L3/IMERG_MONTHLY_V06')
+  .select('precipitation') // Select the 'precipitation' band
+  .filterDate('2002-07-04', '2023-06-01'); // Filter by date range
+
+var wetpoint = ee.Geometry.Point(58.398167, 30.898183);
+var drypoint = ee.Geometry.Point(58.597900, 30.604700);
+
+// Function to extract precipitation values for the given points
+var extractPointValues = function(image) {
+  var date = image.date().format('YYYY-MM-dd');
+  var valueWetpoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to get average value
+    geometry: wetpoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('precipitation');
+  
+  var valueDrypoint = image.reduceRegion({
+    reducer: ee.Reducer.mean(), // Use mean to get average value
+    geometry: drypoint,
+    scale: 1000 // Adjust scale based on dataset resolution
+  }).get('precipitation');
+
+  return ee.Feature(null, {
+    'date': date,
+    'wetpoint_precipitation': valueWetpoint,
+    'drypoint_precipitation': valueDrypoint
+  });
+};
+
+// Map the extraction function over the collection
+var timeSeries = GPM.map(extractPointValues);
+var featureCollection = ee.FeatureCollection(timeSeries);
+
+// Print feature collection size for debugging
+print('Feature Collection Size:', featureCollection.size());
+
+// Export data to Google Drive
+Export.table.toDrive({
+  collection: featureCollection,
+  description: 'Precipitation',
+  folder: 'Summer',
+  fileFormat: 'CSV'
+});
