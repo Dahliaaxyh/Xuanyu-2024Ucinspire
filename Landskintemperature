@@ -1,0 +1,83 @@
+// Define the region of interest
+var regionOfInterest = ee.Geometry.Polygon([
+  [
+    [43.58817326530413, 23.763013680917105],
+    [64.15457951530412, 23.763013680917105],
+    [64.15457951530412, 40.143432381124725],
+    [43.58817326530413, 40.143432381124725],
+    [43.58817326530413, 23.763013680917105]
+  ]
+]);
+
+// Load the MODIS LST dataset
+var collection = ee.ImageCollection("MODIS/061/MOD11A1")
+  .select('LST_Day_1km') // Select the 'LST_Day_1km' band for daytime temperature
+  .filterDate('2002-07-04', '2023-06-01') // Filter the collection by the desired date range
+  .filterBounds(regionOfInterest); // Filter the collection by the region of interest
+
+// Convert temperature from Kelvin to Celsius
+var kelvinToCelsius = function(image) {
+  return image.multiply(0.02).subtract(273.15).copyProperties(image, image.propertyNames());
+};
+
+var collectionCelsius = collection.map(kelvinToCelsius);
+
+// Calculate the mean value for each winter month
+var decemberAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(12, 12, 'month')) // Filter images for December
+  .mean();
+var januaryAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(1, 1, 'month')) // Filter images for January
+  .mean();
+var februaryAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(2, 2, 'month')) // Filter images for February
+  .mean();
+
+// Calculate the mean value for each summer month
+var juneAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(6, 6, 'month')) // Filter images for June
+  .mean();
+var julyAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(7, 7, 'month')) // Filter images for July
+  .mean();
+var augustAverage = collectionCelsius
+  .filter(ee.Filter.calendarRange(8, 8, 'month')) // Filter images for August
+  .mean();
+
+// Calculate the overall average for the winter season
+var winterAverage = ee.ImageCollection([decemberAverage, januaryAverage, februaryAverage]).mean();
+
+// Calculate the overall average for the summer season
+var summerAverage = ee.ImageCollection([juneAverage, julyAverage, augustAverage]).mean();
+
+// Define visualization parameters for temperature
+var tempVis = {
+  min: -10,
+  max: 50,
+  palette: ['blue', 'cyan', 'green', 'yellow', 'red']
+};
+
+// Add layers to the map for visualization
+Map.centerObject(regionOfInterest, 6);
+Map.addLayer(winterAverage, tempVis, 'Winter Average Temperature');
+Map.addLayer(summerAverage, tempVis, 'Summer Average Temperature');
+
+// Export the overall winter average image to Google Drive
+Export.image.toDrive({
+  image: winterAverage,
+  description: 'modis_day_Overall_Winter_Average',
+  folder: 'Winter',
+  scale: 1000, // Adjust the scale according to your needs
+  region: regionOfInterest,
+  fileFormat: 'GeoTIFF'
+});
+
+// Export the overall summer average image to Google Drive
+Export.image.toDrive({
+  image: summerAverage,
+  description: 'modis_day_Overall_Summer_Average',
+  folder: 'Summer',
+  scale: 1000, // Adjust the scale according to your needs
+  region: regionOfInterest,
+  fileFormat: 'GeoTIFF'
+});
