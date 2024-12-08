@@ -1,0 +1,74 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+precipitation = pd.read_csv('/content/Precipitation.csv')
+soil_moisture_am = pd.read_csv('/content/SoilMoisture_AM.csv')
+soil_moisture_pm = pd.read_csv('/content/SoilMoisture_PM.csv')
+water_storage = pd.read_csv('/content/WaterStorage.csv')
+
+precipitation['date'] = pd.to_datetime(precipitation['date'])
+soil_moisture_am['date'] = pd.to_datetime(soil_moisture_am['date'])
+soil_moisture_pm['date'] = pd.to_datetime(soil_moisture_pm['date'])
+water_storage['date'] = pd.to_datetime(water_storage['date'])
+
+np.random.seed(0)
+offset = 0.1
+water_storage['drypoint_water_storage_offset'] = water_storage['drypoint_water_storage'] + np.random.uniform(-offset, offset, len(water_storage))
+water_storage['wetpoint_water_storage_offset'] = water_storage['wetpoint_water_storage'] + np.random.uniform(-offset, offset, len(water_storage))
+
+fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+
+marker_size = 5
+drypoint_color = 'blue'
+wetpoint_color = 'orange'
+alpha_value = 0.6
+
+for ax in axes.flatten():
+    ax.tick_params(axis='both', which='major', labelsize=10, width=2)
+    ax.tick_params(axis='both', which='minor', labelsize=8, width=2)
+    for spine in ax.spines.values():
+        spine.set_linewidth(2)
+
+axes[0, 0].plot(precipitation['date'], precipitation['drypoint_precipitation'], 's--', color="red", markersize=marker_size, alpha=alpha_value, label='Drypoint Precipitation')
+axes[0, 0].plot(precipitation['date'], precipitation['wetpoint_precipitation'], 'D--', color="blue", markersize=marker_size, alpha=alpha_value, label='Wetpoint Precipitation')
+axes[0, 0].set_xlabel('Date', fontsize=12, fontweight='bold')
+axes[0, 0].set_ylabel('Precipitation (mm/hr)', fontsize=12, fontweight='bold')
+axes[0, 0].set_title('(a)', fontsize=14, fontweight='bold')
+legend = axes[0, 0].legend(fontsize=10, loc='best', frameon=True, title_fontsize=12, borderpad=1)
+legend.get_frame().set_edgecolor('gray')
+legend.get_frame().set_alpha(0.5)
+plt.setp(legend.get_texts(), fontweight='bold')
+
+axes[0, 1].plot(water_storage['date'], water_storage['drypoint_water_storage_offset'], 's--', color="red", markersize=5, alpha=0.75, label='Drypoint Water Storage')
+axes[0, 1].plot(water_storage['date'], water_storage['wetpoint_water_storage_offset'], 'D--', color="blue", markersize=4, alpha=0.45, label='Wetpoint Water Storage')
+axes[0, 1].set_xlabel('Date', fontsize=12, fontweight='bold')
+axes[0, 1].set_ylabel('Water Storage (cm)', fontsize=12, fontweight='bold')
+axes[0, 1].set_title('(b)', fontsize=14, fontweight='bold')
+legend = axes[0, 1].legend(fontsize=10, loc='best', frameon=True, title_fontsize=12, borderpad=1)
+legend.get_frame().set_edgecolor('gray')
+legend.get_frame().set_alpha(0.5)
+plt.setp(legend.get_texts(), fontweight='bold')
+
+axes[1, 0].plot(soil_moisture_am['date'], soil_moisture_am['drypoint_sm_am'], 'o', color="red", markersize=5, alpha=0.5, label='Drypoint Soil Moisture (AM)')
+axes[1, 0].plot(soil_moisture_am['date'], soil_moisture_am['wetpoint_sm_am'], 'o', color="blue", markersize=5, alpha=0.5, label='Wetpoint Soil Moisture (AM)')
+axes[1, 0].set_xlabel('Date', fontsize=12, fontweight='bold')
+axes[1, 0].set_ylabel('Soil Moisture - am (m³/m³)', fontsize=12, fontweight='bold')
+axes[1, 0].set_title('(c)', fontsize=14, fontweight='bold')
+legend = axes[1, 0].legend(fontsize=10, loc='upper left', frameon=True, title_fontsize=12, borderpad=1)
+legend.get_frame().set_edgecolor('gray')
+legend.get_frame().set_alpha(0.5)
+plt.setp(legend.get_texts(), fontweight='bold')
+
+axes[1, 1].plot(soil_moisture_pm['date'], soil_moisture_pm['drypoint_sm_pm'], 'o', color="red", markersize=5, alpha=0.5, label='Drypoint Soil Moisture (PM)')
+axes[1, 1].plot(soil_moisture_pm['date'], soil_moisture_pm['wetpoint_sm_pm'], 'o', color="blue", markersize=5, alpha=0.5, label='Wetpoint Soil Moisture (PM)')
+axes[1, 1].set_xlabel('Date', fontsize=12, fontweight='bold')
+axes[1, 1].set_ylabel('Soil Moisture - pm (m³/m³)', fontsize=12, fontweight='bold')
+axes[1, 1].set_title('(d)', fontsize=14, fontweight='bold')
+legend = axes[1, 1].legend(fontsize=10, loc='upper left', frameon=True, title_fontsize=12, borderpad=1)
+legend.get_frame().set_edgecolor('gray')
+legend.get_frame().set_alpha(0.5)
+plt.setp(legend.get_texts(), fontweight='bold')
+
+plt.tight_layout()
+plt.show()
