@@ -1,0 +1,41 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+file_path_lut = '/content/Buffered_Points_TWSA_Average.csv'
+file_path_cities_average = '/content/Cities_TWSA.csv'
+
+data_lut = pd.read_csv(file_path_lut)
+data_cities_average = pd.read_csv(file_path_cities_average)
+
+data_lut['date'] = pd.to_datetime(data_lut['date'])
+data_cities_average['date'] = pd.to_datetime(data_cities_average['date'])
+
+data_lut.set_index('date', inplace=True)
+data_cities_average.set_index('date', inplace=True)
+
+fig, ax = plt.subplots(figsize=(12, 6))
+
+ax.plot(data_lut.index, data_lut['mean'], label='TWSA in Dasht-e Lut', color='blue', linestyle='-', linewidth=1.5)
+ax.plot(data_cities_average.index, data_cities_average['mean'], label='Average TWSA in Cities', color='green', linestyle='-', linewidth=1.5)
+
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+ax.xaxis.set_major_locator(mdates.YearLocator(2))
+
+ax.set_title('Total Water Storage Anomaly (TWSA) in Dasht-e Lut and Average of Cities', fontsize=16, fontweight='bold')
+ax.set_xlabel('Date', fontsize=14, fontweight='bold')
+ax.set_ylabel('Total Water Storage Anomaly (cm)', fontsize=14, fontweight='bold')
+
+ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+ax.tick_params(axis='both', which='major', labelsize=12)
+ax.tick_params(axis='x', which='major')
+
+min_y = min(data_lut['mean'].min(), data_cities_average['mean'].min()) - 1
+max_y = max(data_lut['mean'].max(), data_cities_average['mean'].max()) + 1
+ax.set_ylim(min_y, max_y)
+
+ax.legend(loc='best', fontsize=14)
+
+plt.tight_layout()
+plt.show()
