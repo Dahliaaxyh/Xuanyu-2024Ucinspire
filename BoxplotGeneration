@@ -1,0 +1,108 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import matplotlib.image as mpimg
+from statannot import add_stat_annotation
+
+file_path1 = '/content/sm_surface_all.csv'
+file_path2 = '/content/sm_rootzone_all.csv'
+
+data1 = pd.read_csv(file_path1)
+data2 = pd.read_csv(file_path2)
+
+def remove_outliers(data):
+    Q1 = data.quantile(0.25)
+    Q3 = data.quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return data[(data >= lower_bound) & (data <= upper_bound)]
+
+dry1_no_outliers = remove_outliers(data1['dry2'].dropna())
+wet1_no_outliers = remove_outliers(data1['wet2'].dropna())
+dry2_no_outliers = remove_outliers(data2['dry2'].dropna())
+wet2_no_outliers = remove_outliers(data2['wet2'].dropna())
+
+plt.figure(figsize=(12, 8))
+
+def plot_combined_boxplot(dry1, wet1, dry2, wet2, title, ylabel):
+    labels = ['Surface', 'Rootzone']
+    plt.figure(figsize=(18, 10))
+    box = plt.boxplot([wet1, dry1, wet2, dry2],
+                      positions=[1, 1.5, 3, 3.5], widths=0.3, patch_artist=True,
+                      boxprops=dict(linewidth=2), whiskerprops=dict(linewidth=2, color='black'),
+                      capprops=dict(linewidth=2), medianprops=dict(linewidth=2, color='black'),
+                      meanprops=dict(marker='o', markerfacecolor='green', markersize=12),
+                      flierprops=dict(marker='o', color='black', markersize=10), showmeans=True)
+
+    colors = ['blue', 'red', 'blue', 'red']
+    for patch, color in zip(box['boxes'], colors):
+        patch.set_facecolor(color)
+        patch.set_linewidth(2)
+
+    plt.title(title, fontsize=20, fontweight='bold', fontname='Times New Roman')
+    plt.ylabel(ylabel, fontsize=30, fontweight='bold', fontname='Times New Roman')
+    plt.xticks([1.25, 3.25], labels, fontsize=30, fontweight='bold', fontname='Times New Roman')
+    plt.yticks(fontsize=20, fontweight='bold', fontname='Times New Roman')
+    plt.gca().spines['top'].set_linewidth(2)
+    plt.gca().spines['right'].set_linewidth(2)
+    plt.gca().spines['bottom'].set_linewidth(2)
+    plt.gca().spines['left'].set_linewidth(2)
+
+    legend_elements = [Line2D([0], [0], color='black', lw=2, label='1.5IQR Range'),
+                       Line2D([0], [0], color='black', lw=2, label='Median Line'),
+                       Line2D([0], [0], marker='o', color='green', markersize=12, label='Mean', linestyle='None'),
+                       Line2D([0], [0], marker='o', color='black', markersize=10, label='Outliers', linestyle='None'),
+                       Line2D([0], [0], marker='s', color='w', label='Wet', markerfacecolor='blue', markersize=12),
+                       Line2D([0], [0], marker='s', color='w', label='Dry', markerfacecolor='red', markersize=12)]
+
+    legend = plt.legend(handles=legend_elements, fontsize=24, frameon=True, loc='center', bbox_to_anchor=(0.85, 0.50))
+    frame = legend.get_frame()
+    frame.set_facecolor('white')
+    frame.set_edgecolor('white')
+
+    for i, (wet, dry) in enumerate([(wet1, dry1), (wet2, dry2)]):
+        for j, data in enumerate([wet, dry]):
+            upper = data.max()
+            lower = data.min()
+            mean = data.mean()
+            position = 1 + 2.0 * i + 0.5 * j
+            horizontal_offset = -0.3 if j == 0 else 0.3
+            vertical_spacing = (upper - lower) / 15
+
+            font_size = 20
+            if i == 0 and j == 0:
+                plt.text(position + horizontal_offset, upper + 0.2 * vertical_spacing, f'Upper:\n{upper:.2f}', horizontalalignment='center', color='blue', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, mean, f'Mean:\n{mean:.2f}', horizontalalignment='center', color='green', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, lower - 0.5 * vertical_spacing, f'Lower:\n{lower:.2f}', horizontalalignment='center', color='blue', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+            elif i == 0 and j == 1:
+                plt.text(position + horizontal_offset, upper + 0.5 * vertical_spacing, f'Upper:\n{upper:.2f}', horizontalalignment='center', color='red', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, mean, f'Mean:\n{mean:.2f}', horizontalalignment='center', color='green', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, lower - 2 * vertical_spacing, f'Lower:\n{lower:.2f}', horizontalalignment='center', color='red', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+            elif i == 1 and j == 0:
+                plt.text(position + horizontal_offset, upper - 10 * vertical_spacing, f'Upper:\n{upper:.2f}', horizontalalignment='center', color='blue', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, mean - 20 * vertical_spacing, f'Mean:\n{mean:.2f}', horizontalalignment='center', color='green', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, lower - 35 * vertical_spacing, f'Lower:\n{lower:.2f}', horizontalalignment='center', color='blue', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+            elif i == 1 and j == 1:
+                plt.text(position + horizontal_offset, upper + 13 * vertical_spacing, f'Upper:\n{upper:.2f}', horizontalalignment='center', color='red', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, mean + 5 * vertical_spacing, f'Mean:\n{mean:.2f}', horizontalalignment='center', color='green', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+                plt.text(position + horizontal_offset, lower - 10 * vertical_spacing, f'Lower:\n{lower:.2f}', horizontalalignment='center', color='red', fontsize=font_size, fontweight='bold', fontname='Times New Roman')
+
+    p_values = {"wet vs dry surface": 0.03, "wet vs dry rootzone": 0.061}
+    add_stat_annotation(plt.gca(), data=[wet1, dry1, wet2, dry2],
+                        box_pairs=[(1, 1.5), (3, 3.5)],
+                        perform_stat_test=False, pvalues=[p_values["wet vs dry surface"], p_values["wet vs dry rootzone"]],
+                        text_format='star', loc='outside', verbose=2)
+
+    plt.savefig('/mnt/data/Updated_Combined_Figure_Compressed_Height_Labeled_pvalues.png')
+    plt.close()
+
+plot_combined_boxplot(dry1_no_outliers, wet1_no_outliers, dry2_no_outliers, wet2_no_outliers,
+                      '(a)', r'Soil Moisture $\mathbf{(m^3/m^3)}$')
+
+img = mpimg.imread('/mnt/data/Updated_Combined_Figure_Compressed_Height_Labeled_pvalues.png')
+
+plt.figure(figsize=(18, 10))
+plt.imshow(img)
+plt.axis('off')
+plt.show()
